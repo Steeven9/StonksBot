@@ -7,6 +7,9 @@ import requests
 # Discord bot that prints stock prices
 # author: Stefano Taillefert
 
+# the text channel you want the bot to post in
+bot_channel = "bot-spam"
+
 client = discord.Client()
 
 def get_quote(symbol):
@@ -35,6 +38,9 @@ async def on_ready():
 @client.event
 async def on_message(message):
   if message.author == client.user:
+    return
+
+  if str(message.channel) != str(bot_channel):
     return
 
   if message.content.startswith('$stonk') and len(message.content.split()) == 2:
