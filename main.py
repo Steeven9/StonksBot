@@ -16,13 +16,13 @@ slash = SlashCommand(client, sync_commands=True)
 
 def get_quote(symbol):
     response = requests.get(
-        "https://query1.finance.yahoo.com/v7/finance/quote?lang=en-US&symbols=" + symbol
+        "https://stonks.soulsbros.ch/actions/api.php?symbols=" + symbol
     )
     json_data = json.loads(response.text)
 
     if len(json_data["quoteResponse"]["result"]) == 0:
         # Symbol not found
-        return False
+        return "Stock ticker `" + symbol + "` not found"
 
     quote = json_data["quoteResponse"]["result"][0]
     output = quote["symbol"] + ": "
