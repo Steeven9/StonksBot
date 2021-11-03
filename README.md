@@ -11,7 +11,7 @@ To run it, simply yeet the bot token in a system environment variable named `STO
 
 ## Usage
 
-`$stonk [ticker]`
+`/stonk [ticker]`
 
 That's it. Literally.
 
