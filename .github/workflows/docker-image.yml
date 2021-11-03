@@ -29,6 +29,6 @@ jobs:
         name: Build and push
         uses: docker/build-push-action@v2
         with:
-          context: ./webapp
+          context: .
           push: true
-          tags: steeven9/stonksbot
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/stonksbot
