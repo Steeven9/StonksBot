@@ -70,6 +70,9 @@ def get_crypto_quote(symbol):
 
 @client.event
 async def on_ready():
+    await client.change_presence(
+        activity=discord.Activity(type=discord.ActivityType.watching, name="/stock")
+    )
     print("Logged in as {0.user}".format(client))
 
 
