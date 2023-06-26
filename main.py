@@ -1,111 +1,78 @@
-import json
 import os
 
 import discord
+import yfinance as yf
 from discord_slash import SlashCommand
 from discord_slash.utils.manage_commands import create_option
-import requests
-
 
 # Discord bot that prints stock prices
 # author: Stefano Taillefert
+
+bot_token = os.getenv("STONKSBOT_TOKEN")
+if bot_token == None:
+    raise ValueError("Discord token not found!")
 
 client = discord.Client(intents=discord.Intents.all())
 slash = SlashCommand(client, sync_commands=True)
 
 
-def get_quote(symbol):
-    response = requests.get(
-        "https://stonks.soulsbros.ch/actions/api.php?symbols=" + symbol
-    )
-    json_data = json.loads(response.text)
+def get_quote(tickers: str):
+    stocks = yf.Tickers(tickers)
+    result = []
 
-    if len(json_data["quoteResponse"]["result"]) == 0:
-        # Symbol not found
-        return "Stock ticker `" + symbol + "` not found"
+    tickers_list = tickers.split()
+    for ticker in tickers_list:
+        stock = stocks.tickers[ticker.upper()].info
+        result.append({"name": "Name", "value": stock["shortName"]})
+        result.append({
+            "name": "Current",
+            "value": f"{stock['currentPrice']} {stock['currency']}",
+            "inline": True
+        })
+        result.append({
+            "name": "Daily low",
+            "value": f"{stock['dayLow']} {stock['currency']}",
+            "inline": True
+        })
+        result.append({
+            "name": "Daily high",
+            "value": f"{stock['dayHigh']} {stock['currency']}",
+            "inline": True
+        })
 
-    quote = json_data["quoteResponse"]["result"][0]
-    output = quote["symbol"] + ": "
-
-    if quote["marketState"] == "PRE":
-        output += (
-            "[PRE] "
-            + str(quote["preMarketPrice"])
-            + " "
-            + str(quote["currency"])
-            + " ("
-        )
-        if quote["preMarketChangePercent"] > 0:
-            output += "+"
-        output += str(round(quote["preMarketChangePercent"], 2)) + "%)"
-    elif quote["marketState"] == "POST":
-        output += (
-            "[POST] "
-            + str(quote["postMarketPrice"])
-            + " "
-            + str(quote["currency"])
-            + " ("
-        )
-        if quote["postMarketChangePercent"] > 0:
-            output += "+"
-        output += str(round(quote["postMarketChangePercent"], 2)) + "%)"
-    else:
-        output += str(quote["regularMarketPrice"]) + " " + str(quote["currency"]) + " ("
-        if quote["regularMarketChangePercent"] > 0:
-            output += "+"
-        output += str(round(quote["regularMarketChangePercent"], 2)) + "%)"
-    return output
-
-
-def get_crypto_quote(symbol):
-    response = requests.get("https://stonks.soulsbros.ch/actions/cryptoApi.php")
-    json_data = json.loads(response.text)
-
-    if len(json_data[symbol]) == 0:
-        # Symbol not found
-        return "Crypto `" + symbol + "` not found"
-
-    return symbol.upper() + ": " + str(json_data[symbol]["USD"]) + " USD"
+    return result
 
 
 @client.event
 async def on_ready():
-    await client.change_presence(
-        activity=discord.Activity(type=discord.ActivityType.watching, name="/stock")
-    )
+    await client.change_presence(activity=discord.Activity(
+        type=discord.ActivityType.watching, name="/stock 🏳️‍🌈"))
     print("Logged in as {0.user}".format(client))
 
 
 @slash.slash(
     name="stock",
-    description="Get the current price of a given stock",
+    description="Get the current price of one or more given stocks",
     options=[
         create_option(
-            name="ticker",
-            description="Stock ticker (e.g. GME)",
+            name="tickers",
+            description="One or more stock tickers (e.g. gme aapl)",
             option_type=3,  # string
             required=True,
         )
     ],
 )
-async def stock(ctx, ticker: str):
-    await ctx.send(f"{get_quote(ticker)}")
+async def stock(ctx, tickers: str):
+    data = get_quote(tickers)
+    embed_data = {
+        "title": "Stock prices",
+        "footer": {
+            "text": "github.com/Steeven9/Stonksbot"
+        },
+        "fields": data
+    }
+    embed = discord.Embed().from_dict(embed_data)
+    await ctx.send(embed=embed)
 
 
-@slash.slash(
-    name="crypto",
-    description="Get the current price of a given cryptocurrency",
-    options=[
-        create_option(
-            name="symbol",
-            description="Crypto ticker (e.g. BTC)",
-            option_type=3,  # string
-            required=True,
-        )
-    ],
-)
-async def crypto(ctx, symbol: str):
-    await ctx.send(f"{get_crypto_quote(symbol)}")
-
-
-client.run(os.getenv("STONKSBOT_TOKEN"))
+client.run(bot_token)
